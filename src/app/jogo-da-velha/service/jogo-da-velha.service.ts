@@ -10,13 +10,13 @@ export class JogoDaVelhaService {
   private readonly O: number = 2;
   private readonly VAZIO: number = 0;
 
-  private tabuleiro: any[] = [[], [], []];
+  private tabuleiro: any;
   private numeroMovimentos!: number;
   private vitoria: any;
 
   private _jogador!: number;
   private _showInicio!: boolean;
-  private _showTabuleiro!: boolean;
+  public _showTabuleiro!: boolean;
   private _showFinal!: boolean;
 
   constructor() {}
@@ -33,7 +33,7 @@ export class JogoDaVelhaService {
   /*
     Inicializa o tabuleiro do jogo com vazio para todas as posições do array
   */
-  inicializarTabuleiro() {
+  inicializarTabuleiro(): void {
     this.tabuleiro = [this.TAMANHO_TABULEIRO];
     for (let index = 0; index < this.TAMANHO_TABULEIRO; index++) {
       this.tabuleiro[index] = [this.VAZIO, this.VAZIO, this.VAZIO];
@@ -57,7 +57,7 @@ export class JogoDaVelhaService {
 
   // Retorna o número do jogador a jogar return um number
 
-  get showJogador(): number {
+  get jogador(): number {
     return this._jogador;
   }
 
@@ -95,10 +95,6 @@ export class JogoDaVelhaService {
       this._showFinal = true;
     }
   }
-  cpuJogar() {
-    throw new Error('Method not implemented.');
-  }
-
   /* Verifica e retorna se o jogo terminou
   @param number linha
   @param number coluna
@@ -106,45 +102,145 @@ export class JogoDaVelhaService {
   @param number jogador
   return array
   */
-  fimJogo(
-    linha: number,
-    coluna: number,
-    tabuleiro: any,
-    _jogador: number
-  ): any {
+  fimJogo(linha: number, coluna: number, tabuleiro: any, jogador: number) {
     let fim: any = false;
     //valida a linha
     if (
-      tabuleiro[linha][0] === _jogador &&
-      tabuleiro[linha][1] === _jogador &&
-      tabuleiro[linha][3] === _jogador
+      tabuleiro[linha][0] === jogador &&
+      tabuleiro[linha][1] === jogador &&
+      tabuleiro[linha][2] === jogador
     ) {
       fim = [
         [linha, 0],
         [linha, 1],
-        [linha, 2],
-      ];
+        [linha, 2]];
     }
     //valida coluna
     if (
-      tabuleiro[0][coluna] === _jogador &&
-      tabuleiro[1][coluna] === _jogador &&
-      tabuleiro[2][coluna] === _jogador
+      tabuleiro[0][coluna] === jogador &&
+      tabuleiro[1][coluna] === jogador &&
+      tabuleiro[2][coluna] === jogador
     ) {
       fim = [
         [0, coluna],
         [1, coluna],
-        [2, coluna],
-      ];
+        [2, coluna]];
     }
     //valida as diagonais
     if (
-      tabuleiro[0][2] === _jogador &&
-      tabuleiro[1][1] &&
-      tabuleiro[2][0] === _jogador
+      tabuleiro[0][0] === jogador &&
+      tabuleiro[1][1] === jogador &&
+      tabuleiro[2][2] === jogador
     ) {
-      fim = [[0,2],[1,1],[2,0]]
+      fim = [
+        [0, 0],
+        [1, 1],
+        [2, 2]];
+    }
+    if (
+      tabuleiro[0][2] === jogador &&
+      tabuleiro[1][1] === jogador &&
+      tabuleiro[2][0] === jogador
+    ) {
+      fim = [
+        [0, 2],
+        [1, 1],
+        [2, 0]];
     }
     return fim;
+  }
+  // Lógica para simular jogada do computador em modo aleatório
+  // @return void
+
+  cpuJogar(): void {
+    //verifica jogada de vitoria
+    let jogada: number[] = this.obterJogada(this.O);
+    if (jogada.length <= 0) {
+      //tenta jogar pra evitar derrota caso o oponente teja 2 na sequencia
+      jogada = this.obterJogada(this.X);
+    }
+    if (jogada.length <= 0) {
+      //joga aleatorio
+      let jogadas: any = [];
+      for (let i = 0; i < this.TAMANHO_TABULEIRO; i++) {
+        for (let j = 0; j < this.TAMANHO_TABULEIRO; j++) {
+          if (this.tabuleiro[i][j] === this.VAZIO) {
+            jogadas.push([i, j]);
+          }
+        }
+      }
+      let k = Math.floor(Math.random() * (jogadas.length - 1));
+      jogada = [jogadas[k][0], jogadas[k][1]];
+    }
+
+    this.tabuleiro[jogada[0]][jogada[1]] = this._jogador;
+    this.numeroMovimentos++;
+    this.vitoria = this.fimJogo(
+      jogada[0],
+      jogada[1],
+      this.tabuleiro,
+      this._jogador
+    );
+    this._jogador = this._jogador === this.X ? this.O : this.X;
+  }
+
+  obterJogada(jogador: number): number[] {
+    let tab = this.tabuleiro;
+    for (let linha = 0; linha < this.TAMANHO_TABULEIRO; linha++) {
+      for (let coluna = 0; coluna < this.TAMANHO_TABULEIRO; coluna++) {
+        if (tab[linha][coluna] !== this.VAZIO) {
+          continue;
+        }
+        tab[linha][coluna] = jogador;
+        if (this.fimJogo(linha, coluna, tab, jogador)) {
+          return [linha, coluna];
+        }
+        tab[linha][coluna] = this.VAZIO;
+      }
+    }
+    return [];
+  }
+
+  // Retorna se a peça X deve ser exivida para a coordena informada;
+  // @param number posX
+  // @param number posY
+  // @return boolean
+  exibirX(posX: number, posY: number): boolean {
+    return this.tabuleiro[posX][posY] === this.X;
+  }
+
+  // Retorna se a peça X deve ser exivida para a coordena informada;
+  // @param number posX
+  // @param number posY
+  // @return boolean
+  exibirO(posX: number, posY: number): boolean {
+    return this.tabuleiro[posX][posY] === this.O;
+  }
+
+  // Retorna se a marcação de vitoria deve ser exibida para
+  // a cordenada informada.
+  // @param number posX
+  // @param number posY
+  // @return boolean
+  exibirVitoria(posX: number, posY: number): boolean {
+    let exibirVitoria: boolean = false;
+    if (!this.vitoria) {
+      return exibirVitoria;
+    }
+    for (let pos of this.vitoria) {
+      if (pos[0] === posX && pos[1] === posY) {
+        exibirVitoria = true;
+        break;
+      }
+    }
+    return exibirVitoria;
+  }
+  // Inicializa um novo jogo, asim como exibe o tabuleiro;
+  // @return void.
+  novoJogo(): void {
+    this.inicializar();
+    this._showFinal = false;
+    this._showInicio = false;
+    this.inicializarTabuleiro;
   }
 }
